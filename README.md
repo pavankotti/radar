@@ -1,5 +1,7 @@
 # Distributed Async Web Scraper & Intelligence Engine
 
+<img width="1920" height="931" alt="image" src="https://github.com/user-attachments/assets/eede2371-0b3f-4d69-ba39-262850ee6555" />
+
 A high-concurrency data ingestion and aggregation pipeline built for backend scale. This project demonstrates an asynchronous web scraping architecture designed to discover, fetch, normalize, and deduplicate unstructured REST API data at high velocity.
 
 ## 🚀 Technical Architecture

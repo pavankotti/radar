@@ -28,8 +28,10 @@ export default function App() {
     if (filters.is_new_grad) params.append('is_new_grad', 'true');
     if (filters.visa_sponsorship) params.append('visa_sponsorship', 'true');
 
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
     setIsLoading(true);
-    fetch(`http://localhost:8000/api/v1/jobs/?${params.toString()}`)
+    fetch(`${API_BASE_URL}/api/v1/jobs/?${params.toString()}`)
       .then(res => res.json())
       .then(data => {
         setJobs(data.jobs || []);

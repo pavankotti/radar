@@ -28,59 +28,58 @@ async def run_greenhouse_crawler_sync(company_id: str):
         try:
             job_identifiers = await adapter.discover()
             
-            # Use a Semaphore to limit concurrency to 10. Prevents pool starvation & anti-bot throttling.
-            sem = asyncio.Semaphore(10)
-            
-            async def safe_fetch(job_id: str):
-                async with sem:
-                    return await adapter.fetch_detail(job_id)
-            
-            tasks = [safe_fetch(job_id) for job_id in job_identifiers]
-            raw_results = await asyncio.gather(*tasks, return_exceptions=True)
-            
+            # Process in batches of 25 to prevent Out Of Memory (OOM) on Render's 512MB free tier
+            chunk_size = 25
             added = 0
             deduped = 0
             
-            for raw in raw_results:
-                if isinstance(raw, Exception):
-                    print(f"Failed to fetch detailed job payload: {raw}")
-                    continue
-                try:
-                    normalized = adapter.normalize(raw)
-                    
-                    db_job = Job(
-                        title=normalized.title,
-                        company_name=normalized.company_name,
-                        location=normalized.location,
-                        is_remote=normalized.is_remote,
-                        is_new_grad=normalized.is_new_grad,
-                        visa_sponsorship=normalized.visa_sponsorship,
-                        employment_type=normalized.employment_type,
-                        experience_level=normalized.experience_level,
-                        tags=normalized.tags,
-                        source=normalized.source,
-                        source_url=normalized.source_url,
-                        canonical_url=normalized.canonical_url,
-                        published_at=normalized.published_at,
-                        raw_details=normalized.raw_payload,
-                        content_hash=normalized.content_hash
-                    )
-                    
-                    # Check for duplicates in DB
-                    parent = find_duplicate(db, db_job)
-                    if parent:
-                        db_job.parent_job_id = parent.id
-                        db_job.is_active = False  # Set to inactive as it is a secondary post
-                        deduped += 1
-                    else:
-                        added += 1
+            for i in range(0, len(job_identifiers), chunk_size):
+                chunk = job_identifiers[i:i + chunk_size]
+                
+                tasks = [adapter.fetch_detail(job_id) for job_id in chunk]
+                raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+                
+                for raw in raw_results:
+                    if isinstance(raw, Exception):
+                        print(f"Failed to fetch detailed job payload: {raw}")
+                        continue
+                    try:
+                        normalized = adapter.normalize(raw)
                         
-                    db.add(db_job)
-                except Exception as inner_error:
-                    print(f"Failed to normalize/save job: {inner_error}")
-            
-            # Execute a single batch commit at the very end
-            db.commit()
+                        db_job = Job(
+                            title=normalized.title,
+                            company_name=normalized.company_name,
+                            location=normalized.location,
+                            is_remote=normalized.is_remote,
+                            is_new_grad=normalized.is_new_grad,
+                            visa_sponsorship=normalized.visa_sponsorship,
+                            employment_type=normalized.employment_type,
+                            experience_level=normalized.experience_level,
+                            tags=normalized.tags,
+                            source=normalized.source,
+                            source_url=normalized.source_url,
+                            canonical_url=normalized.canonical_url,
+                            published_at=normalized.published_at,
+                            raw_details=normalized.raw_payload,
+                            content_hash=normalized.content_hash
+                        )
+                        
+                        # Check for duplicates in DB
+                        parent = find_duplicate(db, db_job)
+                        if parent:
+                            db_job.parent_job_id = parent.id
+                            db_job.is_active = False  # Set to inactive as it is a secondary post
+                            deduped += 1
+                        else:
+                            added += 1
+                            
+                        db.add(db_job)
+                    except Exception as inner_error:
+                        print(f"Failed to normalize/save job: {inner_error}")
+                
+                # Commit batch and yield to event loop to free memory and prevent blocking
+                db.commit()
+                await asyncio.sleep(0)
             
             history.status = "success"
             history.jobs_discovered = len(job_identifiers)

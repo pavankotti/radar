@@ -58,7 +58,9 @@ def read_jobs(
     stmt = stmt.order_by(Job.scraped_at.desc())
     
     # Execute paginated query
-    total = len(db.exec(stmt).all())
+    count_stmt = stmt.with_only_columns(func.count(Job.id)).order_by(None)
+    total = db.exec(count_stmt).one()
+    
     stmt = stmt.offset(offset).limit(limit)
     results = db.exec(stmt).all()
     

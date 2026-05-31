@@ -5,7 +5,7 @@ from sqlalchemy import event
 # Adjust connection arguments if using SQLite
 connect_args = {}
 if settings.DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+    connect_args = {"check_same_thread": False, "timeout": 30}
 
 engine = create_engine(
     settings.DATABASE_URL,

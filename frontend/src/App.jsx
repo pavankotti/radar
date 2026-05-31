@@ -21,7 +21,6 @@ export default function App() {
   }, [searchQuery, filters]);
 
   const fetchJobs = () => {
-    // Build dynamic query params from state
     const params = new URLSearchParams({ limit: '100' });
     if (searchQuery.trim()) params.append('q', searchQuery);
     if (filters.is_remote) params.append('is_remote', 'true');
@@ -29,16 +28,24 @@ export default function App() {
     if (filters.visa_sponsorship) params.append('visa_sponsorship', 'true');
 
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const fetchUrl = `${API_BASE_URL}/api/v1/jobs/?${params.toString()}`;
+    
+    console.log("Fetching from:", fetchUrl);
 
     setIsLoading(true);
-    fetch(`${API_BASE_URL}/api/v1/jobs/?${params.toString()}`)
-      .then(res => res.json())
+    fetch(fetchUrl)
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
       .then(data => {
+        console.log("Data received:", data);
         setJobs(data.jobs || []);
         setIsLoading(false);
       })
       .catch(err => {
-        console.error(err);
+        console.error("Fetch failed:", err);
+        setJobs([]);
         setIsLoading(false);
       });
   };
@@ -58,10 +65,10 @@ export default function App() {
       </nav>
 
       {/* Main Search Area */}
-      <main className="flex-1 overflow-y-auto p-8 max-w-7xl mx-auto w-full">
-        <div className="mb-12 flex flex-col items-center text-center mt-6">
-          <h1 className="text-5xl font-bold mb-4 tracking-tight">Discover Elite Engineering Roles</h1>
-          <p className="text-text-secondary mb-10 text-lg max-w-xl">
+      <main className="flex-1 overflow-y-auto p-4 md:p-8 max-w-7xl mx-auto w-full">
+        <div className="mb-8 md:mb-12 flex flex-col items-center text-center mt-2 md:mt-6">
+          <h1 className="text-3xl md:text-5xl font-bold mb-3 md:mb-4 tracking-tight">Discover Elite Engineering Roles</h1>
+          <p className="text-text-secondary mb-6 md:mb-10 text-base md:text-lg max-w-xl px-2">
             Our intelligence engine curates deduplicated software positions actively hiring across the world.
           </p>
           
@@ -78,22 +85,22 @@ export default function App() {
           </div>
 
           {/* Functional Query Filter Pills */}
-          <div className="flex flex-wrap items-center justify-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 px-2">
             <button 
               onClick={() => toggleFilter('is_remote')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-full border transition-all font-medium ${filters.is_remote ? 'bg-accent/10 border-accent/50 text-accent shadow-[0_0_15px_rgba(204,255,0,0.2)]' : 'bg-surface border-surface-hover text-text-secondary hover:text-white hover:border-text-secondary/30'}`}
+              className={`flex items-center gap-1.5 md:gap-2 px-4 py-2 md:px-6 md:py-2.5 rounded-full border transition-all font-medium text-sm md:text-base justify-center ${filters.is_remote ? 'bg-accent/10 border-accent/50 text-accent shadow-[0_0_15px_rgba(204,255,0,0.2)]' : 'bg-surface border-surface-hover text-text-secondary hover:text-white hover:border-text-secondary/30'}`}
             >
               <Globe className="w-4 h-4" /> Fully Remote
             </button>
             <button 
               onClick={() => toggleFilter('is_new_grad')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-full border transition-all font-medium ${filters.is_new_grad ? 'bg-purple-500/10 border-purple-500/50 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'bg-surface border-surface-hover text-text-secondary hover:text-white hover:border-text-secondary/30'}`}
+              className={`flex items-center gap-1.5 md:gap-2 px-4 py-2 md:px-6 md:py-2.5 rounded-full border transition-all font-medium text-sm md:text-base justify-center ${filters.is_new_grad ? 'bg-purple-500/10 border-purple-500/50 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'bg-surface border-surface-hover text-text-secondary hover:text-white hover:border-text-secondary/30'}`}
             >
               <Briefcase className="w-4 h-4" /> New Grad (0-2 YOE)
             </button>
             <button 
               onClick={() => toggleFilter('visa_sponsorship')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-full border transition-all font-medium ${filters.visa_sponsorship ? 'bg-blue-500/10 border-blue-500/50 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-surface border-surface-hover text-text-secondary hover:text-white hover:border-text-secondary/30'}`}
+              className={`flex items-center gap-1.5 md:gap-2 px-4 py-2 md:px-6 md:py-2.5 rounded-full border transition-all font-medium text-sm md:text-base justify-center ${filters.visa_sponsorship ? 'bg-blue-500/10 border-blue-500/50 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-surface border-surface-hover text-text-secondary hover:text-white hover:border-text-secondary/30'}`}
             >
               <MapPin className="w-4 h-4" /> Visa Sponsorship
             </button>
@@ -101,19 +108,52 @@ export default function App() {
         </div>
 
         {/* Results Grid Area */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {isLoading ? (
-            <div className="col-span-full flex items-center justify-center p-20 text-text-secondary">
+            <div className="col-span-full flex items-center justify-center p-12 md:p-20 text-text-secondary">
               <div className="flex flex-col items-center gap-4">
                 <div className="w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
                 <p className="text-lg">Querying Engine Database...</p>
               </div>
             </div>
           ) : jobs.length === 0 ? (
-            <div className="col-span-full flex flex-col items-center justify-center p-20 text-text-secondary bg-surface/30 rounded-3xl border border-surface-hover border-dashed">
-              <Terminal className="w-12 h-12 mb-4 text-surface-hover" />
-              <h3 className="text-xl text-white font-semibold mb-2">No Matches Found</h3>
-              <p>Try adjusting your search filters or clearing the text query.</p>
+            <div className="col-span-full flex flex-col items-center justify-center p-8 md:p-20 text-text-secondary bg-surface/30 rounded-3xl border border-surface-hover border-dashed">
+              <Terminal className="w-10 h-10 md:w-12 md:h-12 mb-4 text-surface-hover" />
+              
+              {searchQuery || filters.is_remote || filters.is_new_grad || filters.visa_sponsorship ? (
+                <>
+                  <h3 className="text-xl text-white font-semibold mb-2">No Matches Found</h3>
+                  <p>Try adjusting your search filters or clearing the text query.</p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-xl text-white font-semibold mb-2">Database is Empty</h3>
+                  <p className="mb-6 max-w-md text-center">Because this is hosted on a free Render tier, the SQLite database resets on sleep. Trigger the live scraper to fetch fresh data.</p>
+                  
+                  <button 
+                    onClick={() => {
+                      setIsLoading(true);
+                      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                      fetch(`${API_BASE_URL}/api/v1/ingest/greenhouse/stripe`, { method: 'POST' })
+                        .then(() => {
+                          const pollInterval = setInterval(() => {
+                            fetch(`${API_BASE_URL}/api/v1/jobs/?limit=1`)
+                              .then(r => r.json())
+                              .then(d => {
+                                if (d.jobs && d.jobs.length > 0) {
+                                  clearInterval(pollInterval);
+                                  fetchJobs();
+                                }
+                              });
+                          }, 5000);
+                        });
+                    }}
+                    className="bg-accent text-black font-bold py-3 px-8 rounded-full hover:bg-white transition-colors flex items-center gap-2"
+                  >
+                    Launch Ingestion Pipeline
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             jobs.map(job => (

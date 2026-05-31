@@ -1,4 +1,4 @@
-# Distributed Async Web Scraper & Intelligence Engine
+# High-Concurrency Async Web Scraper & Intelligence Engine
 
 <img width="1920" height="931" alt="image" src="https://github.com/user-attachments/assets/eede2371-0b3f-4d69-ba39-262850ee6555" />
 
